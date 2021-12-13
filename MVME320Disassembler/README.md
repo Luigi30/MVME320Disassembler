@@ -34,21 +34,21 @@ The columns are as follows:
 ```
 
 The left half is for the N8X305.
-- PC:		Program Counter
-- INST:	Instruction
-- SRC:	Source
-- DEST:	Destination. See note above regarding IV bus destinations.
-- DATA:	Instruction data. All N8X305 instructions are two bytes long.
+- `PC`:		Program Counter
+- `INST`:	Instruction
+- `SRC`:	Source
+- `DEST`:	Destination. See note above regarding IV bus destinations.
+- `DATA`:	Instruction data. All N8X305 instructions are two bytes long.
 
 The right half is for Fast I/O.
-- IO:		Fast I/O instruction data. All Fast I/O instructions are one byte long.
-- FAST_IO:The Fast I/O mnemonic for disambiguation.
-- WBS:	Three bit flags that control discrete board signals:
-		* W: The state of the WATCHDOG signal.
-		* B: Selects which group of OP1 functions is active.
-		* S: The state of the S0 signal.
-- OP1:	Selects one of 16 different write functions.
-- OP2:	Selects one of 8 different read functions.
+- `IO`:		Fast I/O instruction data. All Fast I/O instructions are one byte long.
+- `FAST_IO`:The Fast I/O mnemonic for disambiguation.
+- `WBS`:	Three bit flags that control discrete board signals:
+ * `W`:		The state of the WATCHDOG signal.
+ * `B`:		Selects which group of OP1 functions is active.
+ * `S`:		The state of the S0 signal.
+- `OP1`:	Selects one of 16 different write functions.
+- `OP2`:	Selects one of 8 different read functions.
 
 ### Fast I/O
 The Fast I/O microcode byte is broken down into four sections.
