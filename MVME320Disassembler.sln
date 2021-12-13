@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31919.166
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MVME320Disassembler", "MVME320Disassembler\MVME320Disassembler.csproj", "{8182FBFF-A852-496C-8E0B-7B7F63C7F08E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8182FBFF-A852-496C-8E0B-7B7F63C7F08E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8182FBFF-A852-496C-8E0B-7B7F63C7F08E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8182FBFF-A852-496C-8E0B-7B7F63C7F08E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8182FBFF-A852-496C-8E0B-7B7F63C7F08E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {297A878B-146E-46A5-BCA8-F8B005E16940}
+	EndGlobalSection
+EndGlobal
