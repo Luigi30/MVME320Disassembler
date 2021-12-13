@@ -14,22 +14,24 @@ The instruction mnemonics themselves are consistent with the N8X305 manual but I
 operands for clarity. There's no documentation for Motorola's Fast I/O so I had to come up with that
 from scratch.
 
-Addresses are prefixed with $.
+Addresses are prefixed with `$`.
 
-Literals are prefixed with #.
+Literals are prefixed with `#`.
 
-Registers are prefixed with R.
+Registers are prefixed with `R`.
 
 Some instructions take special destination operands that correspond to different ways to use the IV peripheral bus.
-- IVlD/IVrD: The source operand is placed on the IV bus with the WC data strobe asserted.
-- IVlA/IVrA: The source operand is placed on the IV bus with the SC address strobe asserted.
-- IVl#/IVr#: The source operand is latched, shifted left by # bits, ORed with the L field, and placed on the IV bus with the data strobe asserted.
+- `IVlD`/`IVrD`: The source operand is placed on the IV bus with the WC data strobe asserted.
+- `IVlA`/`IVrA`: The source operand is placed on the IV bus with the SC address strobe asserted.
+- `IVl#`/`IVr#`: The source operand is latched, shifted left by # bits, ORed with the L field, and placed on the IV bus with the data strobe asserted.
 
 The columns are as follows:
 
-```0001: XMIT #$20, ,IVr3     [$DB20] | [$49] FAST_IO -B- WDC2n,RDBCn
+```
+0001: XMIT #$20, ,IVr3     [$DB20] | [$49] FAST_IO -B- WDC2n,RDBCn
 
- pc    inst src  L dest       data      io  fast_io wbs  op1  op2```
+  pc  inst src  L dest       data      io  fast_io wbs  op1  op2
+```
 
 The left half is for the N8X305.
 - PC:		Program Counter
@@ -50,10 +52,12 @@ The right half is for Fast I/O.
 
 ### Fast I/O
 The Fast I/O microcode byte is broken down into four sections.
+```
 - bit 7: Asserts WATCHDOG
 - bit 6: Selects either OP1 functions $0-$7 (cleared) or $8-$E (asserted)
 - bits 5-3: Select OP1 function
 - bits 2-0: Select OP2 function
+```
 
 OP1 function table (where B selects [0-7] or [8-F]):
 ```
@@ -71,7 +75,8 @@ OP1 function table (where B selects [0-7] or [8-F]):
 - B:	WDBCn	(Write Disk Bit Control Register)
 - C:	NOP
 - D:	NOP
-- E:	NOP```
+- E:	NOP
+```
 
 OP2 function table:
 ```
