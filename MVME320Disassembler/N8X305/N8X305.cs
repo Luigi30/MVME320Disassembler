@@ -14,6 +14,71 @@ namespace MVME320Disassembler
             Disassembler dasm;
             private Roms roms;
 
+            public struct Registers
+            {
+                public enum CPUBank
+                {
+                    Reg,
+                    LB,
+                    RB
+                };
+
+                public enum CPU
+                {
+                    AUX,
+                    R1,
+                    R2,
+                    R3,
+                    R4,
+                    R5,
+                    R6,
+                    IVL,
+                    R10,
+                    R11,
+                    R12,
+                    R13,
+                    R14,
+                    R15,
+                    R16,
+                    IVR
+                }
+
+                public struct FastIO
+                {
+                    public enum Op1
+                    {
+                        NOP0,     // B == 0
+                        WUASn,
+                        WUDSn,
+                        WRDn,
+                        WLDSn,
+                        VCR,
+                        WMASn,
+                        WLASn,
+                        WDC1n,    // B == 1
+                        WDBCn,
+                        WDC3n,
+                        NOP3,
+                        WDC2n,
+                        NOP5,
+                        WBUn,
+                        NOP7
+                    }
+
+                    public enum Op2
+                    {
+                        VSR1,
+                        RDBCn,
+                        VRDLn,
+                        RBUn,
+                        VSR2,
+                        RDSn,
+                        VRDUn,
+                        NOP7
+                    }
+                }
+            }
+
             public struct PartNumbers
             {
                 public const string EvenPart = "u1";
@@ -28,10 +93,10 @@ namespace MVME320Disassembler
 
                 public Roms(FileStream even, FileStream odd, FileStream io)
                 {
-                    Program = new UInt16[1024];
-                    FastIO = new byte[1024];
+                    Program = new UInt16[4096];
+                    FastIO = new byte[4096];
 
-                    for (int i = 0; i < 1024; i++)
+                    for (int i = 0; i < 4096; i++)
                     {
                         UInt16 evenByte = Convert.ToUInt16(even.ReadByte());
                         UInt16 oddByte = Convert.ToUInt16(odd.ReadByte());
@@ -99,13 +164,13 @@ namespace MVME320Disassembler
                 roms = new Roms(File.Open("c:/mame/roms/mvme320/3.0-" + N8X305.PartNumbers.EvenPart + ".bin", FileMode.Open),
                                 File.Open("c:/mame/roms/mvme320/3.0-" + N8X305.PartNumbers.OddPart + ".bin", FileMode.Open),
                                 File.Open("c:/mame/roms/mvme320/3.0-" + N8X305.PartNumbers.FastIoPart + ".bin", FileMode.Open));
-                dasm = new Disassembler();
+                dasm = new Disassembler("c:/mame/roms/mvme320/labels.csv", "c:/mame/roms/mvme320/comments.csv");
             }
 
             public void Disassemble()
             {
                 List<string> disassembly = new List<string>();
-                for (int i = 0; i < 1024; i++)
+                for (int i = 0; i < 4096; i++)
                 {
                     disassembly.Add(dasm.Next(roms));
                 }

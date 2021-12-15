@@ -1,7 +1,9 @@
-﻿using System;
+﻿using CsvHelper;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,29 +24,143 @@ namespace MVME320Disassembler
             Jmp
         }
 
+        public class Mnemonics
+        {
+            public struct MVME320
+            {
+                public static List<string> VCR = new List<string>
+                {
+                    "CLED1n",
+                    "CDS0",
+                    "CDS1",
+                    "CWRT",
+                    "nc",
+                    "CBERR",
+                    "CBR",
+                    "STARTn"
+                };
+
+                public static List<string> VSR2 = new List<string>
+                {
+                    "n/c",
+                    "n/c",
+                    "n/c",
+                    "n/c",
+                    "ACFAIL",
+                    "BCLR",
+                    "LBERRn",
+                    "CYACTIV"
+                };
+            }
+
+            public struct CPU
+            {
+                public static List<string> Instructions = new List<string>
+                {
+                    "MOVE",
+                    "ADD",
+                    "AND",
+                    "XOR",
+                    "XEC",
+                    "NZT",
+                    "XMIT",
+                    "JMP"
+                };
+
+                public static List<string> Registers = new List<string>
+                {
+                    "AUX",
+                    "R1",
+                    "R2",
+                    "R3",
+                    "R4",
+                    "R5",
+                    "R6",
+                    "IVL",
+                    "R10",
+                    "R11",
+                    "R12",
+                    "R13",
+                    "R14",
+                    "R15",
+                    "R16",
+                    "IVR"
+                };
+            }
+            public struct FastIO
+            {
+                public static List<string> Op1 = new List<string>
+                {
+                    "NOP0",     // B == 0
+                    "WUASn",
+                    "WUDSn",
+                    "WRDn",
+                    "WLDSn",
+                    "VCR",
+                    "WMASn",
+                    "WLASn",
+                    "WDC1n",    // B == 1
+                    "WDBCn",
+                    "WDC3n",
+                    "NOP3",
+                    "WDC2n",
+                    "NOP5",
+                    "WBUn",
+                    "NOP7"
+                };
+
+                public static List<string> Op2 = new List<string>()
+                {
+                    "VSR1",
+                    "RDBCn",
+                    "VRDLn",
+                    "RBUn",
+                    "VSR2",
+                    "RDSn",
+                    "VRDUn",
+                    "NOP7"
+                };
+            }
+        }
+
         internal class Disassembler
         {
-            enum RegisterBank {
-                Reg,
-                LB,
-                RB
-            };
-
             UInt16 PC;
             UInt16 IR;
             byte FAST_IO;
+            List<CodeLabel> Labels;
 
-            public Disassembler()
+            public Disassembler(string commentFile, string labelFile)
             {
                 PC = 0;
                 IR = 0;
                 FAST_IO = 0;
+
+                using (var commentReader = new StreamReader(commentFile))
+                {
+                    using (var csv = new CsvReader(commentReader, CultureInfo.InvariantCulture))
+                    {
+                        Labels = csv.GetRecords<CodeLabel>().ToList();
+                    }
+                }
             }
 
-            struct InstructionFields
+            public string Octal(byte val)
+            {
+                return Convert.ToString(val, 8);
+            }
+
+            public string Octal(UInt16 val)
+            {
+                return Convert.ToString(val, 8);
+            }
+
+            public struct InstructionFields
             {
                 public UInt16 Instruction;
                 public UInt16 ProgramCounter;
+
+                public string Mnemonic => Mnemonics.CPU.Instructions[Opcode];
 
                 public byte Opcode => (byte)(Instruction >> 13);
                 public byte S => (byte)((Instruction >> 8) & 0x1F);
@@ -64,7 +180,7 @@ namespace MVME320Disassembler
                     Instruction = IR;
                 }
 
-                public RegisterBank GetSBank()
+                public N8X305.Registers.CPUBank GetSBank()
                 {
                     int bank = S >> 3;
 
@@ -72,17 +188,17 @@ namespace MVME320Disassembler
                     {
                         case 0:
                         case 1:
-                            return RegisterBank.Reg;
+                            return N8X305.Registers.CPUBank.Reg;
                         case 2:
-                            return RegisterBank.LB;
+                            return N8X305.Registers.CPUBank.LB;
                         case 3:
-                            return RegisterBank.RB;
+                            return N8X305.Registers.CPUBank.RB;
                         default:
                             throw new ArgumentException();
                     }
                 }
 
-                public RegisterBank GetDBank()
+                public N8X305.Registers.CPUBank GetDBank()
                 {
                     int bank = D >> 3;
 
@@ -90,11 +206,11 @@ namespace MVME320Disassembler
                     {
                         case 0:
                         case 1:
-                            return RegisterBank.Reg;
+                            return N8X305.Registers.CPUBank.Reg;
                         case 2:
-                            return RegisterBank.LB;
+                            return N8X305.Registers.CPUBank.LB;
                         case 3:
-                            return RegisterBank.RB;
+                            return N8X305.Registers.CPUBank.RB;
                         default:
                             throw new ArgumentException();
                     }
@@ -104,11 +220,11 @@ namespace MVME320Disassembler
                 {
                     switch(GetSBank())
                     {
-                        case RegisterBank.Reg:
-                            return $"R{S0}";
-                        case RegisterBank.LB:
+                        case N8X305.Registers.CPUBank.Reg:
+                            return Mnemonics.CPU.Registers[S];
+                        case N8X305.Registers.CPUBank.LB:
                             return $"IVl{S0}";
-                        case RegisterBank.RB:
+                        case N8X305.Registers.CPUBank.RB:
                             return $"IVr{S0}";
                         default:
                             throw new ArgumentException();
@@ -119,11 +235,11 @@ namespace MVME320Disassembler
                 {
                     switch (GetDBank())
                     {
-                        case RegisterBank.Reg:
-                            return $"R{D0}";
-                        case RegisterBank.LB:
+                        case N8X305.Registers.CPUBank.Reg:
+                            return Mnemonics.CPU.Registers[D];
+                        case N8X305.Registers.CPUBank.LB:
                             return $"IVl{D0}";
-                        case RegisterBank.RB:
+                        case N8X305.Registers.CPUBank.RB:
                             return $"IVr{D0}";
                         default:
                             throw new ArgumentException();
@@ -131,30 +247,29 @@ namespace MVME320Disassembler
                 }
             }
 
-            string DasmMove(InstructionFields fields)
+            public struct FastIOFields
             {
-                // MOVE, ADD, AND, XOR
-                string mnemonic;
-              
-                switch(fields.Opcode)
+                public byte Instruction;
+
+                public FastIOFields(byte val)
                 {
-                    case 0:
-                        mnemonic = "MOVE";
-                        break;
-                    case 1:
-                        mnemonic = "ADD";
-                        break;
-                    case 2:
-                        mnemonic = "AND";
-                        break;
-                    case 3:
-                        mnemonic = "XOR";
-                        break;
-                    default:
-                        mnemonic = "error";
-                        break;
+                    Instruction = val;
                 }
 
+                public bool W => (Convert.ToBoolean(Instruction >> 7));
+                public bool B => (Convert.ToBoolean(Instruction >> 6));
+                public bool S => (Convert.ToBoolean(Instruction >> 5));
+
+                public byte Op1 => (byte)((Instruction >> 3) & 7 + (8 * Convert.ToByte(B)));
+                public byte Op2 => (byte)(Instruction & 7);
+
+                public string Op1Mnemonic => Mnemonics.FastIO.Op1[Op1];
+                public string Op2Mnemonic => Mnemonics.FastIO.Op2[Op2];
+            }
+
+            (string, string) DasmMove(InstructionFields fields)
+            {
+                // MOVE, ADD, AND, XOR
                 string output;
                 string S_Mnemonic, D_Mnemonic;
 
@@ -167,233 +282,149 @@ namespace MVME320Disassembler
                 S_Mnemonic = fields.GetSMnemonic();
                 D_Mnemonic = fields.GetDMnemonic();
                  
-                output = $"{mnemonic, 4} {S_Mnemonic,4},{fields.L},{D_Mnemonic}";
+                output = $"{fields.Mnemonic, 4} {S_Mnemonic,4},{fields.L},{D_Mnemonic}";
 
-                return output;
+
+                string fieldString = $"[{fields.Opcode}|S{Octal(fields.S),2:D2}|L{Octal(fields.L)}|D{Octal(fields.D),2:D2}]";
+                return (output, fieldString);
             }
 
-            string DasmXec(InstructionFields fields)
+            (string, string) DasmXec(InstructionFields fields)
             {
-                string mnemonic = "XEC";
                 string output = "";
+                string fieldString = "";
                 string S_Mnemonic;
 
                 S_Mnemonic = fields.GetSMnemonic();
 
-                if(fields.GetSBank() != RegisterBank.Reg)
+                if(fields.GetSBank() != N8X305.Registers.CPUBank.Reg)
                 {
                     // IV Imm
-                    output = $"{mnemonic, 4} {S_Mnemonic,4},{fields.L},${fields.D:X2}";
+                    output = $"{fields.Mnemonic, 4} {S_Mnemonic,4},{fields.L},${fields.D:X2}";
+                    fieldString = $"[{fields.Opcode}|S{Octal(fields.S),2:D2}|L{Octal(fields.L)}|J{Octal(fields.J),3:D2}]";
 
                 }
                 else
                 {
                     // Reg Imm
-                    output = $"{mnemonic, 4} {S_Mnemonic,4}, ,${fields.J:X2}";
+                    output = $"{fields.Mnemonic, 4} {S_Mnemonic,4}, ,${fields.J:X2}";
+                    fieldString = $"[{fields.Opcode}|S{Octal(fields.S),2:D2}|J{Octal(fields.J),3:D3}]";
                 }
 
-                return output;
+                return (output, fieldString);
             }
 
-            string DasmNzt(InstructionFields fields)
+            (string, string) DasmNzt(InstructionFields fields)
             {
-                string mnemonic = "NZT";
                 string output = "";
+                string fieldString;
 
                 string S_Mnemonic;
 
                 S_Mnemonic = fields.GetSMnemonic();
 
-                if (fields.GetSBank() != RegisterBank.Reg)
+                if (fields.GetSBank() != N8X305.Registers.CPUBank.Reg)
                 {
                     // IV Imm
-                    UInt16 newPC = Convert.ToUInt16((fields.ProgramCounter & 0xFFE0) | fields.D); // double-check this
-                    output = $"{mnemonic, 4} {S_Mnemonic,4},{fields.L},${newPC:X4}";
+                    string new_pc = $"{(PC & 0x1FE0) | fields.D:X4}";
+                    output = $"{fields.Mnemonic, 4} {S_Mnemonic,4},{fields.L},${new_pc}";
+                    fieldString = $"[{fields.Opcode}|D{Octal(fields.S),2:D2}|L{Octal(fields.L)}|J{Octal(fields.D),2:D2}]";
 
                 }
                 else
                 {
                     // Reg Imm
-                    UInt16 newPC = Convert.ToUInt16((fields.ProgramCounter & 0xFF00) | fields.J);
-                    output = $"{mnemonic, 4} {S_Mnemonic,4}, ,${newPC:X4}";
+                    string new_pc = $"{(PC & 0x1F00) | fields.J:X4}";
+                    output = $"{fields.Mnemonic, 4} {S_Mnemonic,4}, ,${new_pc}";
+                    fieldString = $"[{fields.Opcode}|D{Octal(fields.S),2:D2}|J{Octal(fields.J),3:D3}]";
                 }
-
-                return output;
+                return (output, fieldString);
             }
 
-            string DasmXmit(InstructionFields fields)
+            (string, string) DasmXmit(InstructionFields fields)
             {
-                string mnemonic = "XMIT";
-                string output = "";
+                string output, fieldString;
 
                 string S_Mnemonic = fields.GetSMnemonic();
-                string D_Mnemonic = fields.GetDMnemonic();
 
-                if (fields.D >= 16)
+                if (fields.S >= 16)
                 {
                     // XMIT Variable Bit Field Immediate, IV Bus
-                    output = $"{mnemonic, 4} {S_Mnemonic,4},{fields.L},${fields.D:X2}";
+                    output = $"{fields.Mnemonic, 4} {S_Mnemonic,4},{fields.L},${fields.D:X2}";
+                    fieldString = $"[{fields.Opcode}|D{Octal(fields.S),2:D2}|L{Octal(fields.L)}|J{Octal(fields.D),2:D2}]";
                 }
-                else if(fields.D == 10 || fields.D == 11)
+                else if(fields.S == 10 || fields.S == 11)
                 {
                     // XMIT 8 Bits Immediate, IV Bus
-                    if(fields.D == 10)
+                    if(fields.S == 10)
                     {
-                        output = $"{mnemonic,4} #${fields.J:X2}, ,{"IVrD"}"; // output as IV LB data
+                        output = $"{fields.Mnemonic,4} #${fields.J:X2}, ,{"IVrD"}"; // output as IV LB data
+                        fieldString = $"[{fields.Opcode}|D{Octal(fields.S),2:D2}|J{Octal(fields.J),3:D3}]";
                     }
-                    if (fields.D == 11)
+                    else // fields.S == 11
                     {
-                        output = $"{mnemonic,4} #${fields.J:X2}, ,{"IVlD"}"; // output as IV RB data
+                        output = $"{fields.Mnemonic,4} #${fields.J:X2}, ,{"IVlD"}"; // output as IV RB data
+                        fieldString = $"[{fields.Opcode}|D{Octal(fields.S),2:D2}|J{Octal(fields.J),3:D3}]";
                     }
 
                 }
-                else if(fields.D == 7 || fields.D == 15)
+                else if(fields.S == 7 || fields.S == 15)
                 {
                     // XMIT, IV Bus Address
-                    if (fields.D == 7)
+                    if (fields.S == 7)
                     {
-                        output = $"{mnemonic,4} #${fields.J:X2}, ,{"R07lA"}"; // R07 + output as IV LB address
+                        output = $"{fields.Mnemonic,4} #${fields.J:X2}, ,{"R07lA"}"; // R07 + output as IV LB address
+                        fieldString = $"[{fields.Opcode}|D{Octal(fields.S),2:D2}|J{Octal(fields.J),3:D3}]";
                     }
-                    else if (fields.D == 15)
+                    else // fields.S == 15
                     {
-                        output = $"{mnemonic,4} #${fields.J:X2}, ,{"R17rA"}"; // R17 + output as IV RB address
+                        output = $"{fields.Mnemonic,4} #${fields.J:X2}, ,{"R17rA"}"; // R17 + output as IV RB address
+                        fieldString = $"[{fields.Opcode}|D{Octal(fields.S),2:D2}|J{Octal(fields.J),3:D3}]";
                     }
                 }
                 else
                 {
                     // XMIT, Register
-                    output = $"{mnemonic, 4} #${fields.J:X2}, ,{S_Mnemonic}";
+                    output = $"{fields.Mnemonic, 4} #${fields.J:X2}, ,{S_Mnemonic}";
+                    fieldString = $"[{fields.Opcode}|D{Octal(fields.S),2:D2}|J{Octal(fields.J),3:D3}]";
                 }
 
-                return output;
+                return (output, fieldString);
             }
 
-            string DasmJmp(InstructionFields fields)
+            (string, string) DasmJmp(InstructionFields fields)
             {
-                string mnemonic = "JMP";
                 string output = "";
 
                 UInt16 absolute = (UInt16)(fields.A & 0x1FFF);
 
-                output = $"{mnemonic, 4} ${absolute:X4}";
-                return output;
-            }
-
-            public string DasmFastIO(byte instruction)
-            {
-                string mnemonic = "FAST_IO";
-                string i53, i20;
-                string output = "";
-
-                bool w = Convert.ToBoolean(FAST_IO & 0x80);
-                bool b = Convert.ToBoolean(FAST_IO & 0x40);
-                bool s = Convert.ToBoolean(FAST_IO & 0x20);
-                int state1 = (FAST_IO >> 3) & 7;
-                int state2 = FAST_IO & 7;
-
-                if (b)
+                // Is this address in the labels list?
+                var codelabel = Labels.Where(t => Convert.ToUInt16(t.pc, 16).Equals(absolute)).ToList().FirstOrDefault();
+                if(codelabel != null)
                 {
-                    switch (state1)
-                    {
-                        case 0:
-                            i53 = "WDC1n";
-                            break;
-                        case 1:
-                            i53 = "WDC2n";
-                            break;
-                        case 2:
-                            i53 = "WDC3n";
-                            break;
-                        case 3:
-                            i53 = "WBUn";
-                            break;
-                        case 4:
-                            i53 = "WDBCn";
-                            break;
-                        case 5:
-                            i53 = "NOP";
-                            break;
-                        case 6:
-                            i53 = "NOP";
-                            break;
-                        case 7:
-                            i53 = "NOP";
-                            break;
-                        default:
-                            throw new ArgumentException();
-                    }
+                    output = $"{fields.Mnemonic,4} {codelabel.label}";
                 }
                 else
                 {
-                    switch (state1)
-                    {
-                        case 0:
-                            i53 = "NOP";
-                            break;
-                        case 1:
-                            i53 = "WUASn";
-                            break;
-                        case 2:
-                            i53 = "WUDSn";
-                            break;
-                        case 3:
-                            i53 = "WRDn";
-                            break;
-                        case 4:
-                            i53 = "WLDSn";
-                            break;
-                        case 5:
-                            i53 = "VCR";
-                            break;
-                        case 6:
-                            i53 = "WMASn";
-                            break;
-                        case 7:
-                            i53 = "WLASn";
-                            break;
-                        default:
-                            throw new ArgumentException();
-                    }
+                    output = $"{fields.Mnemonic,4} ${absolute:X4}";
                 }
 
-                switch (state2)
-                {
-                    case 0:
-                        i20 = "VSR1";
-                        break;
-                    case 1:
-                        i20 = "RDBCn";
-                        break;
-                    case 2:
-                        i20 = "VRDLn";
-                        break;
-                    case 3:
-                        i20 = "RBUn";
-                        break;
-                    case 4:
-                        i20 = "U21D";
-                        break;
-                    case 5:
-                        i20 = "RDSn";
-                        break;
-                    case 6:
-                        i20 = "VRDUn";
-                        break;
-                    case 7:
-                        i20 = "NOP";
-                        break;
-                    default:
-                        throw new ArgumentException();
-                }
-
-                string watchdog, buffer_flag, s0;
-                if (w) watchdog = "W"; else watchdog = "-";
-                if (b) buffer_flag = "B"; else buffer_flag = "-";
-                if (s) s0 = "S"; else s0 = "-";
-
-                output = $"{mnemonic} {watchdog}{buffer_flag}{s0} {i53, 5},{i20, 5}";
-                return output;
+                string fieldString = $"";
+                return (output, fieldString);
             }
+
+            (string, string) DasmFastIO(FastIOFields ioFields)
+            {
+                string watchdog, buffer_flag, s0;
+                if (ioFields.W) watchdog = "W";     else watchdog = "-";
+                if (ioFields.B) buffer_flag = "B";  else buffer_flag = "-";
+                if (ioFields.S) s0 = "S";           else s0 = "-";
+
+                string output = $"FAST_IO {watchdog}{buffer_flag}{s0} {ioFields.Op1Mnemonic, 5},{ioFields.Op2Mnemonic, 5}";
+                return (output, "[]");
+            }
+
+
 
             public string Next(N8X305.Roms program)
             {
@@ -403,44 +434,66 @@ namespace MVME320Disassembler
                 InstructionClass instructionClass = (InstructionClass)(IR >> 13);
 
                 string dasmed;
+                string dasmFields;
                 string io_dasmed;
+                string io_dasmFields;
 
-                InstructionFields inst = new InstructionFields(PC, IR);
+                InstructionFields instructionFields = new InstructionFields(PC, IR);
+                FastIOFields ioFields = new FastIOFields(FAST_IO);
 
                 switch (instructionClass)
                 {
                     case InstructionClass.Move:
-                        dasmed = DasmMove(inst);
+                        (dasmed, dasmFields) = DasmMove(instructionFields);
                         break;
                     case InstructionClass.Add:
-                        dasmed = DasmMove(inst);
+                        (dasmed, dasmFields) = DasmMove(instructionFields);
                         break;
                     case InstructionClass.And:
-                        dasmed = DasmMove(inst);
+                        (dasmed, dasmFields) = DasmMove(instructionFields);
                         break;
                     case InstructionClass.Xor:
-                        dasmed = DasmMove(inst);
+                        (dasmed, dasmFields) = DasmMove(instructionFields);
                         break;
                     case InstructionClass.Xec:
-                        dasmed = DasmXec(inst);
+                        (dasmed, dasmFields) = DasmXec(instructionFields);
                         break;
                     case InstructionClass.Nzt:
-                        dasmed = DasmNzt(inst);
+                        (dasmed, dasmFields) = DasmNzt(instructionFields);
                         break;
                     case InstructionClass.Xmit:
-                        dasmed = DasmXmit(inst);
+                        (dasmed, dasmFields) = DasmXmit(instructionFields);
                         break;
                     case InstructionClass.Jmp:
-                        dasmed = DasmJmp(inst);
+                        (dasmed, dasmFields) = DasmJmp(instructionFields);
                         break;
                     default:
-                        dasmed = "";
+                        (dasmed, dasmFields) = ("", "");
                         break;
                 }
 
-                io_dasmed = DasmFastIO(FAST_IO);
+                (io_dasmed, io_dasmFields) = DasmFastIO(ioFields);
 
-                string output = $"{PC, 4:X4}: {dasmed, -20} [${IR, 4:X4}] | [${FAST_IO,2:X2}] {io_dasmed}";
+                string? autoComment = AutoCommenter.AutoComment(instructionFields, ioFields);
+                var codelabel = Labels.Where(t => Convert.ToUInt16(t.pc, 16).Equals(PC)).ToList().FirstOrDefault();
+                string comment;
+
+                // prefer the comment from the codelabel
+                if(codelabel is not null && codelabel.comment is not null && codelabel.comment != "")
+                {
+                    comment = codelabel.comment;
+                }
+                else if(autoComment is not null)
+                {
+                    comment = autoComment;
+                }
+                else
+                {
+                    comment = "";
+                }
+
+                string output = $"{PC, 4:X4}: {codelabel?.label, 10}: {dasmed, -20} {dasmFields, -20} [${IR, 4:X4}] | [${FAST_IO,2:X2}] {io_dasmed} | // {comment}";
+
                 PC++;
 
                 return output;
